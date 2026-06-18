@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Открыть в Obsidian</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 30rem;
+         margin: 18vh auto; padding: 0 1.2rem; color: #2b2b2b; text-align: center; }
+  a.btn { display: inline-block; margin-top: 1rem; padding: .6rem 1.2rem;
+          background: #7c3aed; color: #fff; border-radius: .5rem; text-decoration: none; }
+  .muted { color: #888; font-size: .9rem; margin-top: 1.4rem; }
+</style>
+</head>
+<body>
+<!--
+  Приватный редиректор obsidian:// для кликабельных ссылок на заметки в мессенджерах
+  (Discord/Slack линкуют только http/https, не кастомные схемы).
+
+  Приватность: vault/file передаются в ЧАСТИ URL после '#' (fragment). Браузер
+  фрагмент на сервер НЕ отправляет → имена заметок не попадают в логи хостинга.
+  Вся работа — на клиенте (JS), сервер отдаёт только эту статическую страницу.
+
+  Формат ссылки:  https://<host>/#v=<vault>&f=<vault-relative path без .md>[&c=<hex>]
+    v = имя vault (encodeURIComponent)
+    f = путь заметки относительно vault, без .md (encodeURIComponent)
+    c = (опц.) цвет полосы embed — читается клиентом мессенджера/адаптером, страницей игнорируется
+-->
+<p id="msg">Открываю в Obsidian…</p>
+<a id="manual" class="btn" style="display:none" href="#">Открыть вручную</a>
+<p class="muted">Если ничего не произошло — нажмите кнопку выше (нужно установленное приложение Obsidian).</p>
+<script>
+(function () {
+  function parse() {
+    var h = (location.hash || "").replace(/^#/, "");
+    var p = new URLSearchParams(h);
+    return { v: p.get("v"), f: p.get("f") };
+  }
+  var q = parse();
+  if (q.v && q.f) {
+    var target = "obsidian://open?vault=" + encodeURIComponent(q.v) +
+                 "&file=" + encodeURIComponent(q.f);
+    var btn = document.getElementById("manual");
+    btn.href = target;
+    btn.style.display = "inline-block";
+    location.replace(target);
+  } else {
+    document.getElementById("msg").textContent = "Нет параметров заметки в ссылке.";
+  }
+})();
+</script>
+</body>
+</html>
