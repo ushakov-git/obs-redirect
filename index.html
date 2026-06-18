@@ -3,50 +3,58 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Открыть в Obsidian</title>
 <style>
-  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 30rem;
-         margin: 18vh auto; padding: 0 1.2rem; color: #2b2b2b; text-align: center; }
-  a.btn { display: inline-block; margin-top: 1rem; padding: .6rem 1.2rem;
-          background: #7c3aed; color: #fff; border-radius: .5rem; text-decoration: none; }
-  .muted { color: #888; font-size: .9rem; margin-top: 1.4rem; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+         display: flex; flex-direction: column; align-items: center; justify-content: center;
+         gap: 1.1rem; padding: 1.5rem; text-align: center; cursor: pointer;
+         background: #fff; color: #2b2b2b; -webkit-tap-highlight-color: transparent; }
+  @media (prefers-color-scheme: dark) { body { background: #1e1e1e; color: #ddd; } }
+  a.btn { display: inline-block; padding: 1rem 2rem; font-size: 1.15rem; font-weight: 600;
+          background: #7c3aed; color: #fff !important; border-radius: .8rem;
+          text-decoration: none; box-shadow: 0 2px 10px rgba(124,58,237,.35); }
+  a.btn:active { transform: translateY(1px); }
+  .muted { color: #888; font-size: .9rem; max-width: 22rem; line-height: 1.4; }
+  .name { font-size: 1rem; opacity: .8; max-width: 26rem; word-break: break-word; }
 </style>
 </head>
 <body>
 <!--
   Приватный редиректор obsidian:// для кликабельных ссылок на заметки в мессенджерах
   (Discord/Slack линкуют только http/https, не кастомные схемы).
+  Приватность: vault/file — в ЧАСТИ URL после '#' (fragment); браузер фрагмент на
+  сервер НЕ отправляет → имена заметок не попадают в логи хостинга. Вся работа — JS.
+  Формат:  https://<host>/#v=<vault>&f=<vault-relative path без .md>[&c=<hex>]
 
-  Приватность: vault/file передаются в ЧАСТИ URL после '#' (fragment). Браузер
-  фрагмент на сервер НЕ отправляет → имена заметок не попадают в логи хостинга.
-  Вся работа — на клиенте (JS), сервер отдаёт только эту статическую страницу.
-
-  Формат ссылки:  https://<host>/#v=<vault>&f=<vault-relative path без .md>[&c=<hex>]
-    v = имя vault (encodeURIComponent)
-    f = путь заметки относительно vault, без .md (encodeURIComponent)
-    c = (опц.) цвет полосы embed — читается клиентом мессенджера/адаптером, страницей игнорируется
+  Мобильный нюанс: iOS/Safari НЕ открывает кастомную схему (obsidian://) при авто-
+  редиректе со страницы — браузер требует жест пользователя. Поэтому: кнопка и тап по
+  всей странице открывают заметку одним касанием; на десктопе срабатывает авто-редирект.
 -->
-<p id="msg">Открываю в Obsidian…</p>
-<a id="manual" class="btn" style="display:none" href="#">Открыть вручную</a>
-<p class="muted">Если ничего не произошло — нажмите кнопку выше (нужно установленное приложение Obsidian).</p>
+<a id="open" class="btn" href="#">📂 Открыть заметку в Obsidian</a>
+<div id="name" class="name"></div>
+<p class="muted">Если заметка не открылась автоматически — нажмите кнопку выше
+(нужно установленное приложение Obsidian). На iPhone подтвердите «Открыть».</p>
 <script>
 (function () {
-  function parse() {
-    var h = (location.hash || "").replace(/^#/, "");
-    var p = new URLSearchParams(h);
-    return { v: p.get("v"), f: p.get("f") };
+  var p = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+  var v = p.get("v"), f = p.get("f");
+  var btn = document.getElementById("open");
+  if (!v || !f) {
+    document.getElementById("name").textContent = "Нет параметров заметки в ссылке.";
+    btn.style.display = "none";
+    return;
   }
-  var q = parse();
-  if (q.v && q.f) {
-    var target = "obsidian://open?vault=" + encodeURIComponent(q.v) +
-                 "&file=" + encodeURIComponent(q.f);
-    var btn = document.getElementById("manual");
-    btn.href = target;
-    btn.style.display = "inline-block";
-    location.replace(target);
-  } else {
-    document.getElementById("msg").textContent = "Нет параметров заметки в ссылке.";
-  }
+  var target = "obsidian://open?vault=" + encodeURIComponent(v) + "&file=" + encodeURIComponent(f);
+  btn.href = target;
+  try { document.getElementById("name").textContent = decodeURIComponent(f); } catch (e) {}
+  // тап по всей странице = открыть (мобильным удобно)
+  document.body.addEventListener("click", function (e) {
+    if (e.target !== btn) location.href = target;
+  });
+  // авто-попытка (срабатывает на десктопе; на iOS заблокирована до жеста)
+  location.replace(target);
 })();
 </script>
 </body>
